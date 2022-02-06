@@ -1,0 +1,53 @@
+------------------------------------------------------------------------------------------------------------------------
+@光当て
+------------------------------------------------------------------------------------------------------------------------
+--track0:offsetX,-2000,2000,0
+--track1:offsetY,-2000,2000,-80
+--track2:光の範囲,-500,100,-50
+--track3:光の強さ,0,100,25
+--check0:発光エフェクトを使用,1
+--dialog:光の大きさ%,local masksize=80;  境界ぼかし,local blur=20;影の濃さ%,local shadowpower=85;
+
+masksize=masksize or 100
+local w,h   = obj.getpixel()
+
+-- 元の画像をバックアップ
+obj.copybuffer("cache:explicitly_org","obj")
+
+-- 影生成
+obj.setoption("blend",0)
+obj.setoption("drawtarget","tempbuffer",w,h)
+obj.effect("単色化","強さ",shadowpower,"輝度を保持する",0,"color",0x000000)
+obj.draw()
+
+obj.setoption("blend","alpha_sub")
+
+obj.effect("境界ぼかし","範囲",-math.min(0,obj.track2),"透明度の境界をぼかす",1)
+obj.effect("縁取り","サイズ",obj.track2,"ぼかし",1,"color",0xffffff)
+obj.effect("反転","透明度反転",0)
+obj.effect("ぼかし","範囲",blur)
+
+obj.draw(obj.track0, obj.track1,0,masksize/100,obj.track3/100)
+obj.copybuffer("cache:shadow","tmp")
+
+-- 合成
+obj.setoption("blend",0)
+obj.setoption("drawtarget","tempbuffer",w,h)
+obj.copybuffer("obj","cache:explicitly_org")
+obj.draw()
+
+obj.copybuffer("obj","cache:shadow")
+obj.draw()
+
+obj.setoption("blend","alpha_sub")
+obj.copybuffer("obj","cache:explicitly_org")
+obj.effect("反転","透明度反転",1)
+obj.draw()
+
+obj.setoption("drawtarget","framebuffer")
+obj.setoption("blend",0)
+obj.load("tempbuffer")
+
+if obj.check0 and 0 < obj.track3 then
+    obj.effect("発光","強さ",obj.track3,"拡散",100,"しきい値",0,"拡散速度",0)
+end
